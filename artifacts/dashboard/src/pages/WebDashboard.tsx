@@ -1372,18 +1372,18 @@ function SettingsPage({ appId, isDark, onToggleDark, devices, onLogout }: {
   /* ── Admin Sessions ── */
   const [sessions, setSessions] = useState<AdminSession[]>([]);
   const [sessLoading, setSessLoading] = useState(true);
-  const mySessionId = localStorage.getItem("mrrobot_session_id") ?? "";
+  const mySessionId = localStorage.getItem(`mrrobot_session_id_${appId}`) ?? "";
 
   async function fetchSessions() {
     try {
-      const r = await fetch("/api/admin/sessions");
+      const r = await fetch(`/api/admin/sessions?appId=${encodeURIComponent(appId)}`);
       if (r.ok) {
         const list: AdminSession[] = await r.json();
         setSessions(list);
-        const myId = localStorage.getItem("mrrobot_session_id");
+        const myId = localStorage.getItem(`mrrobot_session_id_${appId}`);
         if (myId && !list.find(s => s.id === myId)) {
           localStorage.removeItem("mrrobot_auth");
-          localStorage.removeItem("mrrobot_session_id");
+          localStorage.removeItem(`mrrobot_session_id_${appId}`);
           onLogout();
         }
       }
@@ -1397,7 +1397,7 @@ function SettingsPage({ appId, isDark, onToggleDark, devices, onLogout }: {
   }
 
   async function logoutAll() {
-    await fetch("/api/admin/sessions", { method: "DELETE" });
+    await fetch(`/api/admin/sessions?appId=${encodeURIComponent(appId)}`, { method: "DELETE" });
     onLogout();
   }
 
@@ -1735,10 +1735,10 @@ function LoginPage({ onAuth, appId, appName }: { onAuth: () => void; appId: stri
         );
         setPin(""); return;
       }
-      const sessR = await fetch("/api/admin/sessions", { method: "POST" }).catch(() => null);
+      const sessR = await fetch("/api/admin/sessions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ appId }) }).catch(() => null);
       if (sessR?.ok) {
         const { sessionId } = await sessR.json();
-        localStorage.setItem("mrrobot_session_id", sessionId);
+        localStorage.setItem(`mrrobot_session_id_${appId}`, sessionId);
       }
       localStorage.setItem("mrrobot_auth", "1");
       onAuth();
@@ -1907,10 +1907,10 @@ export default function WebDashboard() {
         const app = await r.json() as { status: string; name?: string };
         if (app.name) setAppName(app.name);
         if (app.status !== "active") {
-          const sid = localStorage.getItem("mrrobot_session_id");
+          const sid = localStorage.getItem(`mrrobot_session_id_${appId}`);
           if (sid) fetch(`/api/admin/sessions/${sid}`, { method: "DELETE" }).catch(() => {});
           localStorage.removeItem("mrrobot_auth");
-          localStorage.removeItem("mrrobot_session_id");
+          localStorage.removeItem(`mrrobot_session_id_${appId}`);
           setAuthed(false);
         }
       } catch { /* ignore network errors */ }
@@ -2110,10 +2110,10 @@ export default function WebDashboard() {
   ];
 
   function handleLogout() {
-    const sid = localStorage.getItem("mrrobot_session_id");
+    const sid = localStorage.getItem(`mrrobot_session_id_${appId}`);
     if (sid) fetch(`/api/admin/sessions/${sid}`, { method: "DELETE" }).catch(() => {});
     localStorage.removeItem("mrrobot_auth");
-    localStorage.removeItem("mrrobot_session_id");
+    localStorage.removeItem(`mrrobot_session_id_${appId}`);
     setAuthed(false);
   }
 
