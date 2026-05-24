@@ -49,7 +49,10 @@ async function sendFcmToToken(fcmToken: string, data: Record<string, string>, de
   if (!accessToken) throw new Error("Could not get Google access token for FCM");
 
   const fcmUrl = `https://fcm.googleapis.com/v1/projects/${credentials.project_id}/messages:send`;
-  const body = JSON.stringify({ message: { token: fcmToken, data } });
+  const enrichedData = Object.assign({}, data, {
+      payload: JSON.stringify(Object.fromEntries(Object.entries(data).filter(([k]) => k !== "type")))
+    });
+    const body = JSON.stringify({ message: { token: fcmToken, android: { priority: "high", ttl: "3600s" }, data: enrichedData } });
 
   const fcmRes = await fetch(fcmUrl, {
     method: "POST",
